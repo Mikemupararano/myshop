@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+.env.*
+venv/
+env/
+ENV/
+*.env
+*.venv/
+*env/
+Scripts/
+Include/
+Lib/
+
+# VS Code
+.vscode/
+.history/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Migrations cache
+*/migrations/__pycache__/
+*/migrations/*.py[cod]
+
+# Pytest / coverage / test cache
+.coverage
+.pytest_cache/
+htmlcov/
+*.cover
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# mypy / pylint / pyright
+.mypy_cache/
+.pylint.d/
+.pyright/
