@@ -135,3 +135,5 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Primary key field type
 # -------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CART_SESSION_ID = 'cart'
