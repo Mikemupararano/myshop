@@ -163,5 +163,5 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = "kudath@yahoo.co.uk"
-EMAIL_HOST_PASSWORD = "qfejvqiylqhhijwv"  # use app password, not normal password
+
 DEFAULT_FROM_EMAIL = "kudath@yahoo.co.uk"
