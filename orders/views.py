@@ -2,6 +2,7 @@ from cart.cart import Cart
 from django.shortcuts import render, redirect
 from .forms import OrderCreateForm
 from .models import OrderItem
+from .tasks import order_created
 
 
 def order_create(request):
@@ -25,6 +26,8 @@ def order_create(request):
 
             # Clear the cart AFTER saving order items
             cart.clear()
+            # Launch asynchronous task to send order confirmation email
+            order_created.delay(order.id)
 
             # Optional: Redirect to prevent duplicate POSTs (good practice)
             return render(request, "orders/order/created.html", {"order": order})

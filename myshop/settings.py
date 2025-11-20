@@ -156,3 +156,12 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "rpc://")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.mail.yahoo.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "kudath@yahoo.co.uk"
+EMAIL_HOST_PASSWORD = "qfejvqiylqhhijwv"  # use app password, not normal password
+DEFAULT_FROM_EMAIL = "kudath@yahoo.co.uk"
