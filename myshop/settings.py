@@ -125,8 +125,6 @@ USE_TZ = True
 # -------------------------------------------------------------------
 # Static & Media files
 # -------------------------------------------------------------------
-# During development, Django serves app/static automatically. If you keep a
-# project-level "static/" folder, STATICFILES_DIRS makes it available too.
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"  # for collectstatic (production)
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
@@ -144,10 +142,15 @@ CART_SESSION_ID = "cart"
 # -------------------------------------------------------------------
 # Celery (RabbitMQ)
 # -------------------------------------------------------------------
+# Reads broker URL and backend from .env.
+# .env should have:
+#   CELERY_BROKER_URL=amqp://mike_thomas:Rabbit123@localhost:5672//
+#   CELERY_RESULT_BACKEND=rpc://
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
-    "amqp://guest:guest@localhost:5672//",
+    "amqp://mike_thomas:CHANGE_ME@localhost:5672//",
 )
+
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "rpc://")
 
 CELERY_ACCEPT_CONTENT = ["json"]
