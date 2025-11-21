@@ -199,3 +199,10 @@ if (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD) and not DEBUG:
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "webmaster@localhost"
 SERVER_EMAIL = EMAIL_HOST_USER or "root@localhost"  # used for error emails
+
+# -------------------------------------------------------------------
+# Celery dev convenience (run tasks synchronously when DEBUG=True)
+# -------------------------------------------------------------------
+if DEBUG:
+    CELERY_TASK_ALWAYS_EAGER = True  # Celery runs tasks immediately
+    CELERY_TASK_EAGER_PROPAGATES = True  # Show errors directly
