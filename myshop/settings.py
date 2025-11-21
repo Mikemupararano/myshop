@@ -15,7 +15,18 @@ from dotenv import load_dotenv
 # Base paths & environment
 # -------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv()  # reads variables from .env located beside manage.py
+
+# Load environment variables from .env located next to manage.py
+load_dotenv(BASE_DIR / ".env")
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    """Parse boolean-like environment variables robustly."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "t", "yes", "y"}
+
 
 # -------------------------------------------------------------------
 # Security
@@ -24,17 +35,17 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY is not set. Add it to your .env file.")
 
-DEBUG = os.getenv("DEBUG", "False").strip().lower() == "true"
+DEBUG = env_bool("DEBUG", default=False)
 
 # Example .env: ALLOWED_HOSTS=127.0.0.1,localhost
 _raw_hosts = os.getenv("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
+
+# Helpful default for local development when DEBUG=True
 if not ALLOWED_HOSTS and DEBUG:
-    # convenient defaults for local dev
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
-# Optional (useful in production behind a domain/reverse proxy)
-# Example .env: CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+# Optional: CSRF trusted origins (e.g. https://yourdomain.com,https://www.yourdomain.com)
 _raw_csrf = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf.split(",") if o.strip()]
 
@@ -48,6 +59,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Project apps
     "cart.apps.CartConfig",
     "orders.apps.OrdersConfig",
     "shop.apps.ShopConfig",
@@ -78,7 +90,6 @@ WSGI_APPLICATION = "myshop.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        # Add project-level templates/ directory
         "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -93,7 +104,7 @@ TEMPLATES = [
 ]
 
 # -------------------------------------------------------------------
-# Database (SQLite for dev; switch via env for prod if desired)
+# Database (SQLite for dev)
 # -------------------------------------------------------------------
 DATABASES = {
     "default": {
@@ -101,6 +112,18 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# If you later move to Postgres, you can make this env-driven like:
+# DATABASES = {
+#     "default": {
+#         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
+#         "NAME": os.getenv("DB_NAME", ""),
+#         "USER": os.getenv("DB_USER", ""),
+#         "PASSWORD": os.getenv("DB_PASSWORD", ""),
+#         "HOST": os.getenv("DB_HOST", "localhost"),
+#         "PORT": os.getenv("DB_PORT", "5432"),
+#     }
+# }
 
 # -------------------------------------------------------------------
 # Password validation
@@ -118,7 +141,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # -------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "UTC"  # you could switch to "Europe/London" if you prefer
 USE_I18N = True
 USE_TZ = True
 
@@ -126,42 +149,53 @@ USE_TZ = True
 # Static & Media files
 # -------------------------------------------------------------------
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"  # for collectstatic (production)
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Only add STATICFILES_DIRS if a /static directory exists in the project root
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# -------------------------------------------------------------------
-# Primary key field type
-# -------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Session cart
 CART_SESSION_ID = "cart"
 
 # -------------------------------------------------------------------
 # Celery (RabbitMQ)
 # -------------------------------------------------------------------
-# Reads broker URL and backend from .env.
-# .env should have:
-#   CELERY_BROKER_URL=amqp://mike_thomas:Rabbit123@localhost:5672//
-#   CELERY_RESULT_BACKEND=rpc://
-CELERY_BROKER_URL = os.getenv(
-    "CELERY_BROKER_URL",
-    "amqp://mike_thomas:CHANGE_ME@localhost:5672//",
-)
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+
+# In production, require CELERY_BROKER_URL to be set
+if not CELERY_BROKER_URL and not DEBUG:
+    raise RuntimeError("CELERY_BROKER_URL is not set. Add it to your .env file.")
+
+# For local development, allow a safe default if not provided
+if not CELERY_BROKER_URL and DEBUG:
+    CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
 
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "rpc://")
-
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
+# -------------------------------------------------------------------
+# Email (Yahoo SMTP)
+# -------------------------------------------------------------------
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.mail.yahoo.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = "kudath@yahoo.co.uk"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
-DEFAULT_FROM_EMAIL = "kudath@yahoo.co.uk"
+# In production, you probably want these set
+if (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD) and not DEBUG:
+    raise RuntimeError(
+        "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set in .env for production."
+    )
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "webmaster@localhost"
+SERVER_EMAIL = EMAIL_HOST_USER or "root@localhost"  # used for error emails
