@@ -183,6 +183,9 @@ CELERY_RESULT_SERIALIZER = "json"
 # -------------------------------------------------------------------
 # Email (Yahoo SMTP)
 # -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Email (Yahoo SMTP)
+# -------------------------------------------------------------------
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.mail.yahoo.com"
 EMAIL_PORT = 587
@@ -201,8 +204,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "webmaster@localhost"
 SERVER_EMAIL = EMAIL_HOST_USER or "root@localhost"  # used for error emails
 
 # -------------------------------------------------------------------
-# Celery dev convenience (run tasks synchronously when DEBUG=True)
+# Celery behaviour (use real broker, not eager mode)
 # -------------------------------------------------------------------
-if DEBUG:
-    CELERY_TASK_ALWAYS_EAGER = True  # Celery runs tasks immediately
-    CELERY_TASK_EAGER_PROPAGATES = True  # Show errors directly
+CELERY_TASK_ALWAYS_EAGER = False  # Do NOT run tasks synchronously
+CELERY_TASK_EAGER_PROPAGATES = False  # Don't bubble errors to caller
