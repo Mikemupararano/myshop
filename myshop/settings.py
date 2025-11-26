@@ -7,6 +7,7 @@ Docs:
 - All settings:      https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from decouple import config
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -208,3 +209,10 @@ SERVER_EMAIL = EMAIL_HOST_USER or "root@localhost"  # used for error emails
 # -------------------------------------------------------------------
 CELERY_TASK_ALWAYS_EAGER = False  # Do NOT run tasks synchronously
 CELERY_TASK_EAGER_PROPAGATES = False  # Don't bubble errors to caller
+
+# Stripe credentials
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_API_VERSION = "2024-04-10"  # or 2024-06-20 if required
+
+# In production, require Stripe keys to be set
