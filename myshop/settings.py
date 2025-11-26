@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     # Project apps
     "cart.apps.CartConfig",
     "orders.apps.OrdersConfig",
+    "payment.apps.PaymentConfig",
     "shop.apps.ShopConfig",
 ]
 
