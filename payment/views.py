@@ -47,3 +47,11 @@ def payment_process(request):
         return redirect(session.url, code=303)
     else: 
         return render (request, 'payment/process.html', locals())
+    
+    # Creating a view to handle successful payments
+def payment_completed(request):
+    return render(request, 'payment/completed.html')
+
+# Creating a view to handle cancelled payments
+def payment_cancelled(request):
+    return render(request, 'payment/cancelled.html')
