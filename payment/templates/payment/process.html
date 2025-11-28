@@ -20,7 +20,7 @@
     </tbody>
   
     <tr class ="row{% cycle '1' '2' %}">
-        <td><img src="{% item.product.image %}" alt="{{ item.product.image.url }}" 
+        <td><img src="{% if item.product.image %}" {{ item.product.image.url }} 
             {% else %}{% static "img/no_image.png" %}{% endif %} ">
         </td>
         <td>{{ item.product.name }}</td>
