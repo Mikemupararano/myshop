@@ -27,27 +27,29 @@ def stripe_webhook(request):
     # ---------------------------
     # HANDLE EVENTS HERE
     # ---------------------------
-    event_type = event["type"]
-    data = event["data"]["object"]
 
-    if event_type == "checkout.session.completed":
-        session = data
-        order_id = session.get("client_reference_id")
-
-        if order_id:
+    if event.type == "checkout.session.completed":
+        session = event.data.object
+        # Fulfill the purchase...
+        if (
+            session.mode == "payment"
+            and session.payment_status == "paid"
+        ):
             try:
-                order = Order.objects.get(id=order_id)
+                order = Order.objects.get(
+                    id=session.client_reference_id
+                    )
+            except Order.DoesNotExist:
+                return HttpResponse(status=404)
+            # Mark the order as paid
+            order.paid = True
+            order.save()
+            else:
+                    order = None
                 order.paid = True
                 order.save()
-            except Order.DoesNotExist:
-                pass
-
-    elif event_type == "payment_intent.succeeded":
-        payment_intent = data
-        # handle payment success logic here
-        pass
-
-    # Add additional event handlers if needed...
+        
 
     # Return HTTP 200 so Stripe knows the webhook was received
     return HttpResponse(status=200)
+
