@@ -214,6 +214,10 @@ CELERY_TASK_EAGER_PROPAGATES = False  # Don't bubble errors to caller
 # Stripe credentials
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
-STRIPE_API_VERSION = "2024-04-10"  # or 2024-06-20 if required
+STRIPE_API_VERSION = "2025-11-17.clover"  # or 2024-06-20 if required
 
 # In production, require Stripe keys to be set
+
+# Optional safety (recommended)
+if not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY:
+    raise ValueError("Stripe keys must be set in environment variables!")
