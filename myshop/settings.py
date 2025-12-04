@@ -12,6 +12,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
 # -------------------------------------------------------------------
 # Base paths & environment
 # -------------------------------------------------------------------
