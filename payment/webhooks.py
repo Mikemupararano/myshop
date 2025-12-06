@@ -30,6 +30,8 @@ def stripe_webhook(request):
                 try:
                     order = Order.objects.get(id=order_id)
                     order.paid = True
+                    # Store Stripe payment ID
+                    order.stripe_id = session.payment_intent
                     order.save()
                 except Order.DoesNotExist:
                     # Do not crash – just acknowledge
