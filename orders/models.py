@@ -26,34 +26,25 @@ class Order(models.Model):
 
     def get_total_cost(self):
         return sum(item.get_cost() for item in self.items.all())
-    
+
     def get_stripe_url(self):
         if not self.stripe_id:
             # no payment associated
             return ""
-        if '_test_' in settings.STRIPE_SECRET_KEY:
+        if "_test_" in settings.STRIPE_SECRET_KEY:
             # Stripe path for test payments
-            path = '/test/'
+            path = "/test/"
         else:
-            path = '/'
+            path = "/"
         return f"https://dashboard.stripe.com{path}payments/{self.stripe_id}"
-    
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(
-        Order,
-        related_name="items",
-        on_delete=models.CASCADE
-        )
+    order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
     product = models.ForeignKey(
-        "shop.Product",
-        related_name="order_items",
-        on_delete=models.CASCADE
+        "shop.Product", related_name="order_items", on_delete=models.CASCADE
     )
-    price = models.DecimalField(
-        max_digits=10, decimal_places=2
-        )
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
