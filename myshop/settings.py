@@ -153,7 +153,8 @@ USE_TZ = True
 # Static & Media files
 # -------------------------------------------------------------------
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "static"
+
 
 # Only add STATICFILES_DIRS if a /static directory exists in the project root
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
