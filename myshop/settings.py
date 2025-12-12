@@ -153,13 +153,15 @@ USE_TZ = True
 # Static & Media files
 # -------------------------------------------------------------------
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "static"
-
-
-# Only add STATICFILES_DIRS if a /static directory exists in the project root
-STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
-
 MEDIA_URL = "media/"
+
+
+# Source static files (my app/ project static files)
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Collected static files (used in production)
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
