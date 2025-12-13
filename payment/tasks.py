@@ -5,6 +5,7 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from orders.models import Order
 from celery import shared_task
+from django.conf import settings
 
 @shared_task
 def payment_completed(order_id):
@@ -21,8 +22,12 @@ def payment_completed(order_id):
         'Thank you for your purchase. '
         'Please find attached the invoice for your recent order.'
     )
-    email = EmailMessage(subject, message, 'kudath@yahoo.co.uk', [order.email]
-                         )
+    email = EmailMessage(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [order.email],
+    )
     # Generate PDF invoice
     html = render_to_string('orders/order/pdf.html', {'order': order})
     out = BytesIO()
@@ -34,7 +39,3 @@ def payment_completed(order_id):
     )
     # Send e-mail
     email.send()
-    
-    
-        
-    
