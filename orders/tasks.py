@@ -2,8 +2,9 @@ import logging
 
 from celery import shared_task
 from django.conf import settings
-from django.core.mail import EmailMessage, get_connection
-from .models import Order
+from django.core.mail import EmailMultiAlternatives, get_connection
+
+from orders.models import Order
 
 logger = logging.getLogger(__name__)
 
@@ -12,12 +13,12 @@ logger = logging.getLogger(__name__)
     bind=True,
     autoretry_for=(Exception,),
     retry_kwargs={"max_retries": 5, "countdown": 60},
-    rate_limit="5/m",  # helps avoid Yahoo rate limiting in bursts
+    rate_limit="5/m",  # helps avoid Yahoo SMTP throttling
 )
-def order_created(self, order_id):
+def order_created(self, order_id: int) -> int:
     """
     Send an e-mail notification when an order is successfully created.
-    Retries on transient failures (SMTP disconnects, etc).
+    Retries automatically on transient failures (SMTP disconnects, etc).
     """
     try:
         order = Order.objects.get(id=order_id)
@@ -25,28 +26,37 @@ def order_created(self, order_id):
         logger.warning("order_created: Order %s not found", order_id)
         return 0
 
-    subject = f"Order nr. {order.id}"
+    subject = f"Order confirmation – Order #{order.id}"
     message = (
         f"Dear {order.first_name},\n\n"
-        "You have successfully placed an order.\n"
-        f"Your order ID is {order.id}.\n"
+        "Thank you for your order.\n\n"
+        f"Your order reference is #{order.id}.\n"
+        "We will notify you again once payment is confirmed.\n\n"
+        "Kind regards,\n"
+        "Su Solutions"
     )
 
-    # Use DEFAULT_FROM_EMAIL so it matches EMAIL_HOST_USER/authenticated account
     from_email = settings.DEFAULT_FROM_EMAIL
 
-    # Reuse one SMTP connection per task execution (more stable than send_mail bursts)
+    # Reuse one SMTP connection per task (more reliable with Yahoo)
     connection = get_connection()
 
-    email = EmailMessage(
+    email = EmailMultiAlternatives(
         subject=subject,
         body=message,
         from_email=from_email,
         to=[order.email],
+        reply_to=[from_email],
         connection=connection,
-        reply_to=[from_email],  # optional
     )
 
     sent = email.send(fail_silently=False)
-    logger.info("order_created: sent=%s order_id=%s to=%s", sent, order.id, order.email)
-    return sent
+
+    logger.info(
+        "order_created: sent=%s order_id=%s to=%s",
+        sent,
+        order.id,
+        order.email,
+    )
+
+    return 1 if sent else 0

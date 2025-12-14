@@ -7,13 +7,12 @@ Docs:
 - All settings:      https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from decouple import config
 from pathlib import Path
 import os
+
+from decouple import config
 from dotenv import load_dotenv
 
-
-STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
 # -------------------------------------------------------------------
 # Base paths & environment
 # -------------------------------------------------------------------
@@ -40,17 +39,15 @@ if not SECRET_KEY:
 
 DEBUG = env_bool("DEBUG", default=False)
 
-# Example .env: ALLOWED_HOSTS=127.0.0.1,localhost
 _raw_hosts = os.getenv("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 
-# Helpful default for local development when DEBUG=True
 if not ALLOWED_HOSTS and DEBUG:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
-# Optional: CSRF trusted origins (e.g. https://yourdomain.com,https://www.yourdomain.com)
 _raw_csrf = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf.split(",") if o.strip()]
+
 
 # -------------------------------------------------------------------
 # Applications
@@ -69,6 +66,7 @@ INSTALLED_APPS = [
     "shop.apps.ShopConfig",
 ]
 
+
 # -------------------------------------------------------------------
 # Middleware
 # -------------------------------------------------------------------
@@ -82,11 +80,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
 # -------------------------------------------------------------------
 # URLs / WSGI
 # -------------------------------------------------------------------
 ROOT_URLCONF = "myshop.urls"
 WSGI_APPLICATION = "myshop.wsgi.application"
+
 
 # -------------------------------------------------------------------
 # Templates
@@ -107,6 +107,7 @@ TEMPLATES = [
     },
 ]
 
+
 # -------------------------------------------------------------------
 # Database (SQLite for dev)
 # -------------------------------------------------------------------
@@ -117,17 +118,6 @@ DATABASES = {
     }
 }
 
-# If you later move to Postgres, you can make this env-driven like:
-# DATABASES = {
-#     "default": {
-#         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
-#         "NAME": os.getenv("DB_NAME", ""),
-#         "USER": os.getenv("DB_USER", ""),
-#         "PASSWORD": os.getenv("DB_PASSWORD", ""),
-#         "HOST": os.getenv("DB_HOST", "localhost"),
-#         "PORT": os.getenv("DB_PORT", "5432"),
-#     }
-# }
 
 # -------------------------------------------------------------------
 # Password validation
@@ -141,13 +131,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+
 # -------------------------------------------------------------------
 # Internationalization
 # -------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"  # you could switch to "Europe/London" if you prefer
+TIME_ZONE = "UTC"  # switch to "Europe/London" if you want
 USE_I18N = True
 USE_TZ = True
+
 
 # -------------------------------------------------------------------
 # Static & Media files
@@ -155,11 +147,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "media/"
 
-
-# Source static files (my app/ project static files)
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
-# Collected static files (used in production)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_ROOT = BASE_DIR / "media"
@@ -169,16 +157,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Session cart
 CART_SESSION_ID = "cart"
 
+
 # -------------------------------------------------------------------
 # Celery (RabbitMQ)
 # -------------------------------------------------------------------
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 
-# In production, require CELERY_BROKER_URL to be set
 if not CELERY_BROKER_URL and not DEBUG:
     raise RuntimeError("CELERY_BROKER_URL is not set. Add it to your .env file.")
 
-# For local development, allow a safe default if not provided
 if not CELERY_BROKER_URL and DEBUG:
     CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
 
@@ -187,9 +174,10 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
-# -------------------------------------------------------------------
-# Email (Yahoo SMTP)
-# -------------------------------------------------------------------
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_EAGER_PROPAGATES = False
+
+
 # -------------------------------------------------------------------
 # Email (Yahoo SMTP)
 # -------------------------------------------------------------------
@@ -198,31 +186,36 @@ EMAIL_HOST = "smtp.mail.yahoo.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+# These are your SMTP login credentials (customers do NOT see these)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")  # e.g. kudath@yahoo.co.uk
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")  # Yahoo app password
 
-# In production, you probably want these set
 if (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD) and not DEBUG:
     raise RuntimeError(
         "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set in .env for production."
     )
 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "webmaster@localhost"
-SERVER_EMAIL = EMAIL_HOST_USER or "root@localhost"  # used for error emails
+# What customers SEE as the sender (hide your personal email)
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "Su Solutions Shop <no-reply@susolutions.shop>",
+)
+
+# Used for error emails; keep it non-personal too
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+
 
 # -------------------------------------------------------------------
-# Celery behaviour (use real broker, not eager mode)
+# Stripe
 # -------------------------------------------------------------------
-CELERY_TASK_ALWAYS_EAGER = False  # Do NOT run tasks synchronously
-CELERY_TASK_EAGER_PROPAGATES = False  # Don't bubble errors to caller
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
 
-# Stripe credentials
-STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
-STRIPE_API_VERSION = "2025-11-17.clover"  # or 2024-06-20 if required
+STRIPE_API_VERSION = os.getenv("STRIPE_API_VERSION", "2025-11-17.clover")
 
-# In production, require Stripe keys to be set
-
-# Optional safety (recommended)
 if not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY:
     raise ValueError("Stripe keys must be set in environment variables!")
+
+if not STRIPE_WEBHOOK_SECRET and not DEBUG:
+    raise ValueError("STRIPE_WEBHOOK_SECRET must be set in environment variables!")
