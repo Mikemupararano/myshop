@@ -1,5 +1,4 @@
 import logging
-
 import stripe
 from django.conf import settings
 from django.db import transaction
@@ -9,10 +8,45 @@ from django.views.decorators.csrf import csrf_exempt
 from orders.models import Order
 from .tasks import payment_completed
 
+
 logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 stripe.api_version = getattr(settings, "STRIPE_API_VERSION", None)
+
+
+def _get_order_id_from_session(session: dict) -> str | None:
+    metadata = session.get("metadata") or {}
+    return metadata.get("order_id") or session.get("client_reference_id")
+
+
+def _get_email_from_session(session: dict) -> str | None:
+    return (session.get("customer_details") or {}).get("email") or session.get(
+        "customer_email"
+    )
+
+
+def _set_payment_ref(order: Order, payment_intent_id: str | None) -> list[str]:
+    """
+    Save Stripe payment reference into whichever field exists on Order.
+    Your admin shows STRIPE PAYMENT, so this will typically be `stripe_payment`.
+    Returns update_fields list additions.
+    """
+    update_fields: list[str] = []
+    if not payment_intent_id:
+        return update_fields
+
+    if hasattr(order, "stripe_payment"):
+        # only set if blank OR to backfill missing value
+        if getattr(order, "stripe_payment", "") != payment_intent_id:
+            order.stripe_payment = payment_intent_id
+            update_fields.append("stripe_payment")
+    elif hasattr(order, "stripe_id"):
+        if getattr(order, "stripe_id", "") != payment_intent_id:
+            order.stripe_id = payment_intent_id
+            update_fields.append("stripe_id")
+
+    return update_fields
 
 
 @csrf_exempt
@@ -33,87 +67,122 @@ def stripe_webhook(request):
         return HttpResponse(status=400)
 
     event_type = event.get("type")
-    session = (event.get("data") or {}).get("object") or {}
+    obj = (event.get("data") or {}).get("object") or {}
 
     logger.info("Stripe event received: %s", event_type)
 
-    # Some payment methods complete asynchronously; this event is also a valid "paid" signal.
-    paid_events = {
+    # ---- 1) Checkout events (best: already contain metadata + client_reference_id) ----
+    if event_type in {
         "checkout.session.completed",
         "checkout.session.async_payment_succeeded",
-    }
+    }:
+        session = obj
 
-    if event_type not in paid_events:
-        return HttpResponse(status=200)
+        # Only handle one-time payments and only when paid
+        if session.get("mode") != "payment":
+            return HttpResponse(status=200)
 
-    mode = session.get("mode")
-    payment_status = session.get("payment_status")
+        if session.get("payment_status") != "paid":
+            logger.info(
+                "Ignoring %s because payment_status=%s",
+                event_type,
+                session.get("payment_status"),
+            )
+            return HttpResponse(status=200)
 
-    # For checkout.session.completed, payment_status should be 'paid' for one-time card payments.
-    # For async_payment_succeeded, it's already succeeded, but we keep this guard anyway.
-    if mode != "payment" or payment_status != "paid":
+        order_id = _get_order_id_from_session(session)
+        if not order_id:
+            logger.warning(
+                "%s missing order_id (metadata/client_reference_id)", event_type
+            )
+            return HttpResponse(status=200)
+
+        payment_intent_id = session.get("payment_intent")
+        stripe_email = _get_email_from_session(session)
+
+        # Lock row to avoid races / duplicate processing
+        with transaction.atomic():
+            try:
+                order = Order.objects.select_for_update().get(id=order_id)
+            except Order.DoesNotExist:
+                logger.warning("Order not found for order_id=%s", order_id)
+                return HttpResponse(status=200)
+
+            update_fields = []
+
+            # mark paid (idempotent)
+            if not getattr(order, "paid", False):
+                order.paid = True
+                update_fields.append("paid")
+
+            # optional: keep email in sync with Stripe checkout email
+            if stripe_email and stripe_email != order.email:
+                order.email = stripe_email
+                update_fields.append("email")
+
+            update_fields += _set_payment_ref(order, payment_intent_id)
+
+            if update_fields:
+                order.save(update_fields=list(dict.fromkeys(update_fields)))
+
+            # send invoice only after commit
+            transaction.on_commit(lambda: payment_completed.delay(order.id))
+
         logger.info(
-            "Ignoring %s (mode=%s payment_status=%s)",
+            "Order %s marked paid via %s (pi=%s)",
+            order_id,
             event_type,
-            mode,
-            payment_status,
+            payment_intent_id,
         )
         return HttpResponse(status=200)
 
-    metadata = session.get("metadata") or {}
-    order_id = metadata.get("order_id") or session.get("client_reference_id")
+    # ---- 2) Fallback: PaymentIntent succeeded (needs payment_intent.metadata.order_id) ----
+    if event_type == "payment_intent.succeeded":
+        pi = obj
+        metadata = pi.get("metadata") or {}
+        order_id = metadata.get("order_id")
+        payment_intent_id = pi.get("id")
 
-    if not order_id:
-        logger.warning(
-            "%s missing order id (client_ref=%s metadata=%s)",
-            event_type,
-            session.get("client_reference_id"),
-            metadata,
+        if not order_id:
+            # If you don't set payment_intent_data.metadata in Checkout Session creation,
+            # this event cannot be mapped to an Order.
+            logger.warning(
+                "payment_intent.succeeded missing metadata.order_id (pi=%s). "
+                "Add payment_intent_data={'metadata': {'order_id': str(order.id)}} to Checkout Session create.",
+                payment_intent_id,
+            )
+            return HttpResponse(status=200)
+
+        with transaction.atomic():
+            try:
+                order = Order.objects.select_for_update().get(id=order_id)
+            except Order.DoesNotExist:
+                logger.warning(
+                    "Order not found for order_id=%s (pi=%s)",
+                    order_id,
+                    payment_intent_id,
+                )
+                return HttpResponse(status=200)
+
+            update_fields = []
+
+            if not getattr(order, "paid", False):
+                order.paid = True
+                update_fields.append("paid")
+
+            update_fields += _set_payment_ref(order, payment_intent_id)
+
+            if update_fields:
+                order.save(update_fields=list(dict.fromkeys(update_fields)))
+
+            transaction.on_commit(lambda: payment_completed.delay(order.id))
+
+        logger.info(
+            "Order %s marked paid via payment_intent.succeeded (pi=%s)",
+            order_id,
+            payment_intent_id,
         )
         return HttpResponse(status=200)
 
-    try:
-        order = Order.objects.get(id=order_id)
-    except Order.DoesNotExist:
-        logger.warning("Order not found for order_id=%s", order_id)
-        return HttpResponse(status=200)
-
-    # Idempotency: Stripe can retry events
-    if getattr(order, "paid", False):
-        logger.info("Order %s already paid; skipping", order.id)
-        return HttpResponse(status=200)
-
-    payment_intent = session.get("payment_intent")
-
-    # OPTIONAL: prefer Stripe's email if you want (helps if order email was blank/wrong)
-    stripe_email = (session.get("customer_details") or {}).get("email") or session.get(
-        "customer_email"
-    )
-
-    order.paid = True
-    update_fields = ["paid"]
-
-    if stripe_email and stripe_email != order.email:
-        order.email = stripe_email
-        update_fields.append("email")
-
-    if payment_intent:
-        if hasattr(order, "stripe_payment"):
-            order.stripe_payment = payment_intent
-            update_fields.append("stripe_payment")
-        elif hasattr(order, "stripe_id"):
-            order.stripe_id = payment_intent
-            update_fields.append("stripe_id")
-
-    order.save(update_fields=update_fields)
-
-    # ✅ Queue invoice task only after DB commit is complete (ensures task sees paid=True)
-    transaction.on_commit(lambda: payment_completed.delay(order.id))
-
-    logger.info(
-        "Marked order %s paid (payment_intent=%s) and queued invoice task",
-        order.id,
-        payment_intent,
-    )
-
+    # Ignore everything else
     return HttpResponse(status=200)

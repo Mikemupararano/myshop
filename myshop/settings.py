@@ -8,9 +8,8 @@ Docs:
 """
 
 from pathlib import Path
-import os
 
-from decouple import config
+from decouple import config, Csv
 from dotenv import load_dotenv
 
 # -------------------------------------------------------------------
@@ -21,33 +20,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from .env located next to manage.py
 load_dotenv(BASE_DIR / ".env")
 
-
-def env_bool(name: str, default: bool = False) -> bool:
-    """Parse boolean-like environment variables robustly."""
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "t", "yes", "y"}
-
-
 # -------------------------------------------------------------------
 # Security
 # -------------------------------------------------------------------
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = config("SECRET_KEY", default="")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY is not set. Add it to your .env file.")
 
-DEBUG = env_bool("DEBUG", default=False)
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-_raw_hosts = os.getenv("ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
+# Example .env:
+# ALLOWED_HOSTS=127.0.0.1,localhost
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
 
-if not ALLOWED_HOSTS and DEBUG:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-
-_raw_csrf = os.getenv("CSRF_TRUSTED_ORIGINS", "")
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf.split(",") if o.strip()]
-
+# Example .env:
+# CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 
 # -------------------------------------------------------------------
 # Applications
@@ -66,7 +54,6 @@ INSTALLED_APPS = [
     "shop.apps.ShopConfig",
 ]
 
-
 # -------------------------------------------------------------------
 # Middleware
 # -------------------------------------------------------------------
@@ -80,13 +67,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
 # -------------------------------------------------------------------
 # URLs / WSGI
 # -------------------------------------------------------------------
 ROOT_URLCONF = "myshop.urls"
 WSGI_APPLICATION = "myshop.wsgi.application"
-
 
 # -------------------------------------------------------------------
 # Templates
@@ -107,7 +92,6 @@ TEMPLATES = [
     },
 ]
 
-
 # -------------------------------------------------------------------
 # Database (SQLite for dev)
 # -------------------------------------------------------------------
@@ -117,7 +101,6 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
 
 # -------------------------------------------------------------------
 # Password validation
@@ -131,15 +114,13 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
 # -------------------------------------------------------------------
 # Internationalization
 # -------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"  # switch to "Europe/London" if you want
+TIME_ZONE = "Europe/London"
 USE_I18N = True
 USE_TZ = True
-
 
 # -------------------------------------------------------------------
 # Static & Media files
@@ -149,7 +130,6 @@ MEDIA_URL = "media/"
 
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -157,26 +137,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Session cart
 CART_SESSION_ID = "cart"
 
-
 # -------------------------------------------------------------------
 # Celery (RabbitMQ)
 # -------------------------------------------------------------------
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-
-if not CELERY_BROKER_URL and not DEBUG:
-    raise RuntimeError("CELERY_BROKER_URL is not set. Add it to your .env file.")
-
-if not CELERY_BROKER_URL and DEBUG:
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="")
+if not CELERY_BROKER_URL:
+    # safe default for local dev
     CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
 
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "rpc://")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="rpc://")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
+# Ensure tasks are truly async
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
-
 
 # -------------------------------------------------------------------
 # Email (Yahoo SMTP)
@@ -187,23 +163,28 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 # These are your SMTP login credentials (customers do NOT see these)
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")  # e.g. kudath@yahoo.co.uk
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")  # Yahoo app password
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")  # e.g. kudath@yahoo.co.uk
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")  # Yahoo app password
 
-if (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD) and not DEBUG:
+if not DEBUG and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
     raise RuntimeError(
         "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD must be set in .env for production."
     )
 
-# What customers SEE as the sender (hide your personal email)
-DEFAULT_FROM_EMAIL = os.getenv(
+# IMPORTANT:
+# With Yahoo SMTP, you generally cannot send as no-reply@yourdomain unless that domain is configured
+# with an email provider that permits it. The reliable option is to set a friendly display name
+# but keep the actual Yahoo address:
+DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL",
-    "Su Solutions Shop <no-reply@susolutions.shop>",
+    default=(
+        f"Su Solutions Shop <{EMAIL_HOST_USER}>"
+        if EMAIL_HOST_USER
+        else "webmaster@localhost"
+    ),
 )
 
-# Used for error emails; keep it non-personal too
-SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
-
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 
 # -------------------------------------------------------------------
 # Stripe
@@ -211,11 +192,10 @@ SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
-
-STRIPE_API_VERSION = os.getenv("STRIPE_API_VERSION", "2025-11-17.clover")
+STRIPE_API_VERSION = config("STRIPE_API_VERSION", default="2025-11-17.clover")
 
 if not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY:
-    raise ValueError("Stripe keys must be set in environment variables!")
+    raise RuntimeError("Stripe keys must be set in environment variables!")
 
 if not STRIPE_WEBHOOK_SECRET and not DEBUG:
-    raise ValueError("STRIPE_WEBHOOK_SECRET must be set in environment variables!")
+    raise RuntimeError("STRIPE_WEBHOOK_SECRET must be set in environment variables!")
