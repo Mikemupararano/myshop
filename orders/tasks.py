@@ -1,3 +1,4 @@
+# orders/tasks.py
 import logging
 
 from celery import shared_task
@@ -16,6 +17,9 @@ logger = logging.getLogger(__name__)
     rate_limit="5/m",
 )
 def order_created(self, order_id: int) -> int:
+    """
+    Send an email when an order is created (before payment).
+    """
     try:
         order = Order.objects.get(id=order_id)
     except Order.DoesNotExist:
@@ -33,7 +37,9 @@ def order_created(self, order_id: int) -> int:
     )
 
     from_email = settings.DEFAULT_FROM_EMAIL
-    connection = get_connection(fail_silently=False)
+
+    # Reuse one SMTP connection per task execution
+    connection = get_connection()
 
     email = EmailMultiAlternatives(
         subject=subject,
@@ -45,5 +51,11 @@ def order_created(self, order_id: int) -> int:
     )
 
     sent = email.send(fail_silently=False)
-    logger.info("order_created: sent=%s order_id=%s to=%s", sent, order.id, order.email)
+
+    logger.info(
+        "order_created: sent=%s order_id=%s to=%s",
+        sent,
+        order.id,
+        order.email,
+    )
     return 1 if sent else 0
