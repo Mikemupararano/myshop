@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from shop.models import Product
+from coupons.models import Coupon  # ✅ make sure you have a coupons app + model
 
 
 class Cart:
@@ -15,6 +16,7 @@ class Cart:
             # save an empty cart in the session
             cart = self.session[settings.CART_SESSION_ID] = {}
         self.cart = cart
+
         # store current applied coupon
         self.coupon_id = self.session.get("coupon_id")
 
@@ -24,11 +26,14 @@ class Cart:
         from the database.
         """
         product_ids = self.cart.keys()
+
         # get the product objects and add them to the cart
         products = Product.objects.filter(id__in=product_ids)
+
         cart = self.cart.copy()
         for product in products:
             cart[str(product.id)]["product"] = product
+
         for item in cart.values():
             item["price"] = Decimal(item["price"])
             item["total_price"] = item["price"] * item["quantity"]
@@ -46,14 +51,13 @@ class Cart:
         """
         product_id = str(product.id)
         if product_id not in self.cart:
-            self.cart[product_id] = {
-                "quantity": 0,
-                "price": str(product.price),
-            }
+            self.cart[product_id] = {"quantity": 0, "price": str(product.price)}
+
         if override_quantity:
-            self.cart[product_id]["quantity"] = quantity
+            self.cart[product_id]["quantity"] = int(quantity)
         else:
-            self.cart[product_id]["quantity"] += quantity
+            self.cart[product_id]["quantity"] += int(quantity)
+
         self.save()
 
     def save(self):
@@ -70,30 +74,41 @@ class Cart:
             self.save()
 
     def clear(self):
-        # remove cart from session
-        del self.session[settings.CART_SESSION_ID]
+        """
+        Remove cart from session (and coupon).
+        """
+        self.session.pop(settings.CART_SESSION_ID, None)
+        self.session.pop("coupon_id", None)
         self.save()
 
-    def get_total_price(self):
+    def get_total_price(self) -> Decimal:
         return sum(
             Decimal(item["price"]) * item["quantity"] for item in self.cart.values()
         )
-        
-     @property
+
+    @property
     def coupon(self):
-        if self.coupon_id:
-            try:
-                return Coupon.objects.get(id=self.coupon_id)
-            except Coupon.DoesNotExist:
-                pass
-        return None
+        """
+        Return the applied coupon object, if any.
+        """
+        if not self.coupon_id:
+            return None
+        try:
+            return Coupon.objects.get(id=self.coupon_id)
+        except Coupon.DoesNotExist:
+            # cleanup invalid coupon id in session
+            self.session.pop("coupon_id", None)
+            self.save()
+            return None
 
-    def get_discount(self):
-        if self.coupon:
-            return (
-                self.coupon.discount / Decimal(100)
-            ) * self.get_total_price()
-        return Decimal(0)
+    def get_discount(self) -> Decimal:
+        """
+        Return discount amount (money), not percent.
+        """
+        coupon = self.coupon
+        if coupon:
+            return (Decimal(coupon.discount) / Decimal("100")) * self.get_total_price()
+        return Decimal("0")
 
-    def get_total_price_after_discount(self):
+    def get_total_price_after_discount(self) -> Decimal:
         return self.get_total_price() - self.get_discount()
