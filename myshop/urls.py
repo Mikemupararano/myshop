@@ -13,6 +13,7 @@ urlpatterns = [
     path("orders/", include(("orders.urls", "orders"), namespace="orders")),
     # ✅ FIX: namespace must match payment/urls.py -> app_name = "payment"
     path("payment/", include(("payment.urls", "payment"), namespace="payment")),
+    path("coupons/", include(("coupons.urls", "coupons"), namespace="coupons")),
     path("", include(("shop.urls", "shop"), namespace="shop")),
 ]
 
