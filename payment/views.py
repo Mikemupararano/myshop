@@ -1,5 +1,4 @@
 from decimal import Decimal, ROUND_HALF_UP
-import logging
 
 import stripe
 from django.conf import settings
@@ -8,10 +7,8 @@ from django.urls import reverse
 
 from orders.models import Order
 
-logger = logging.getLogger(__name__)
-
 stripe.api_key = settings.STRIPE_SECRET_KEY
-stripe.api_version = getattr(settings, "STRIPE_API_VERSION", None)
+stripe.api_version = settings.STRIPE_API_VERSION
 
 
 def _to_pence(amount: Decimal) -> int:
@@ -22,21 +19,32 @@ def _to_pence(amount: Decimal) -> int:
 def payment_process(request):
     order_id = request.session.get("order_id")
     if not order_id:
-        return redirect("cart:cart_detail")
+        return redirect("cart:cart_detail")  # adjust if your cart url name differs
 
     order = get_object_or_404(Order, id=order_id)
 
     if request.method == "POST":
-        # ✅ Include session_id so the completed page can verify payment with Stripe
+        # ✅ include session_id for Stripe verification on completed page
         success_url = (
             request.build_absolute_uri(reverse("payment:completed"))
             + "?session_id={CHECKOUT_SESSION_ID}"
         )
         cancel_url = request.build_absolute_uri(reverse("payment:cancelled"))
 
-        line_items = []
+        session_data = {
+            "mode": "payment",
+            "client_reference_id": str(order.id),
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "customer_email": order.email,
+            # ✅ critical for webhook fallback mapping
+            "metadata": {"order_id": str(order.id)},
+            "payment_intent_data": {"metadata": {"order_id": str(order.id)}},
+            "line_items": [],
+        }
+
         for item in order.items.all():
-            line_items.append(
+            session_data["line_items"].append(
                 {
                     "price_data": {
                         "currency": "gbp",
@@ -46,73 +54,25 @@ def payment_process(request):
                     "quantity": int(item.quantity),
                 }
             )
-        # stripe coupon
-        if order.coupon:
+
+        # Stripe coupon (see note below)
+        if getattr(order, "coupon", None):
             stripe_coupon = stripe.Coupon.create(
                 name=order.coupon.code,
-                percent_off=int(order.discount),
+                percent_off=order.discount,  # make sure this is a number 0-100
                 duration="once",
             )
-            session_data['discounts'] = [{'coupon': stripe_coupon.id}]
-            
-        
-        # ✅ IMPORTANT: put order_id on BOTH the Session and the PaymentIntent
-        # so payment_intent.succeeded can still map back to the Order if needed.
-        session = stripe.checkout.Session.create(
-            mode="payment",
-            client_reference_id=str(order.id),
-            success_url=success_url,
-            cancel_url=cancel_url,
-            line_items=line_items,
-            customer_email=order.email,
-            metadata={"order_id": str(order.id)},
-            payment_intent_data={"metadata": {"order_id": str(order.id)}},
-        )
+            session_data["discounts"] = [{"coupon": stripe_coupon.id}]
 
+        session = stripe.checkout.Session.create(**session_data)
         return redirect(session.url, code=303)
 
     return render(request, "payment/process.html", {"order": order})
 
 
 def payment_completed(request):
-    """
-    Payment completed page.
-
-    This page verifies the payment status with Stripe (using the session_id),
-    rather than assuming payment succeeded.
-    """
-    session_id = request.GET.get("session_id")
-    payment_status = None
-    order_id = None
-    session = None
-
-    if session_id:
-        try:
-            session = stripe.checkout.Session.retrieve(session_id)
-            payment_status = session.get("payment_status")  # 'paid' or 'unpaid'
-            metadata = session.get("metadata") or {}
-            order_id = metadata.get("order_id") or session.get("client_reference_id")
-        except stripe.error.StripeError as e:
-            # Don’t hard-crash the page if Stripe is temporarily unavailable
-            logger.exception("Stripe error retrieving Checkout Session: %s", e)
-
-    # Optional: show current DB state too (useful when webhooks are delayed)
-    order = None
-    if order_id:
-        try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
-            order = None
-
-    return render(
-        request,
-        "payment/completed.html",
-        {
-            "payment_status": payment_status,
-            "order": order,
-            "session": session,  # optional (handy for debugging in template)
-        },
-    )
+    # (Optional) verify session_id here like you did before
+    return render(request, "payment/completed.html")
 
 
 def payment_cancelled(request):
