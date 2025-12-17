@@ -18,7 +18,11 @@ def order_create(request):
 
         if form.is_valid():
             # Save the order
-            order = form.save()
+            order = form.save(commit=False)
+            if cart.coupon:
+                order.coupon = cart.coupon
+                order.discount = cart.coupon.discount
+            order.save()
 
             # Create corresponding OrderItem objects
             for item in cart:
