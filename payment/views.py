@@ -46,15 +46,16 @@ def payment_process(request):
                     "quantity": int(item.quantity),
                 }
             )
-
-        if not line_items:
-            return render(
-                request,
-                "payment/process.html",
-                {"order": order, "error": "Your order has no items to pay for."},
-                status=400,
+        # stripe coupon
+        if order.coupon:
+            stripe_coupon = stripe.Coupon.create(
+                name=order.coupon.code,
+                percent_off=int(order.discount),
+                duration="once",
             )
-
+            session_data['discounts'] = [{'coupon': stripe_coupon.id}]
+            
+        
         # ✅ IMPORTANT: put order_id on BOTH the Session and the PaymentIntent
         # so payment_intent.succeeded can still map back to the Order if needed.
         session = stripe.checkout.Session.create(
