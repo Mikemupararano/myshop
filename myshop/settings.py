@@ -200,3 +200,9 @@ if not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY:
 
 if not STRIPE_WEBHOOK_SECRET and not DEBUG:
     raise RuntimeError("STRIPE_WEBHOOK_SECRET must be set in environment variables!")
+
+# Redis settings
+REDIS_HOST = config("REDIS_HOST", default="localhost")
+REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
+REDIS_DB = 1
+
