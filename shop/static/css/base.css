@@ -1,4 +1,9 @@
-@import url('https://fonts.googleapis.com/css?family=Ubuntu');
+@import url("https://fonts.googleapis.com/css?family=Ubuntu");
+
+/* -------------------------
+   Base / typography
+-------------------------- */
+
 body {
     margin: 0;
     padding: 0;
@@ -11,7 +16,7 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: 'Ubuntu', sans-serif;
+    font-family: "Ubuntu", sans-serif;
     font-weight: normal;
 }
 
@@ -32,6 +37,7 @@ input[type="submit"] {
     padding: 10px 20px;
     font-size: 14px;
     border: 0;
+    cursor: pointer;
 }
 
 a.button.light {
@@ -46,6 +52,10 @@ a.button.light {
 .text-right {
     text-align: right;
 }
+
+/* -------------------------
+   Tables
+-------------------------- */
 
 table {
     width: 100%;
@@ -93,6 +103,10 @@ td input[type="submit"] {
     padding: 4px 10px;
 }
 
+/* -------------------------
+   Forms
+-------------------------- */
+
 form p label,
 form p input {
     float: left;
@@ -124,6 +138,9 @@ ul.errorlist {
     padding: 10px 0;
 }
 
+/* -------------------------
+   Layout: header / content
+-------------------------- */
 
 #header {
     padding: 10px 100px;
@@ -139,7 +156,7 @@ ul.errorlist {
 }
 
 #header .logo {
-    font-family: 'Ubuntu', sans-serif;
+    font-family: "Ubuntu", sans-serif;
     float: left;
     color: #333;
     font-size: 22px;
@@ -155,6 +172,8 @@ ul.errorlist {
     padding: 0 100px;
     overflow: hidden;
 }
+
+/* Sidebar */
 
 #sidebar {
     width: 220px;
@@ -186,6 +205,8 @@ ul.errorlist {
     color: #fff;
 }
 
+/* Main content area */
+
 #main {
     float: left;
     width: 96%;
@@ -193,18 +214,9 @@ ul.errorlist {
     overflow: hidden;
 }
 
-.product-list .item {
-    width: 25%;
-    padding: 10px 20px 10px 0;
-    float: left;
-    text-align: center;
-    line-height: 1.2;
-}
-
-.product-list .item img {
-    width: 100%;
-    margin-bottom: 8px;
-}
+/* -------------------------
+   Product detail page
+-------------------------- */
 
 .product-detail {
     text-align: justify;
@@ -229,6 +241,10 @@ ul.errorlist {
 .product-detail h2 {
     margin-top: 10px;
 }
+
+/* -------------------------
+   Orders
+-------------------------- */
 
 .order-form {
     float: left;
@@ -266,6 +282,10 @@ ul.errorlist {
     color: #dc1616;
 }
 
+/* -------------------------
+   Language selector
+-------------------------- */
+
 .languages {
     float: right;
     padding-top: 4px;
@@ -290,6 +310,10 @@ ul.errorlist {
     margin: 0;
 }
 
+/* -------------------------
+   Recommendations (existing)
+-------------------------- */
+
 .recommendations {
     clear: both;
 }
@@ -299,7 +323,7 @@ ul.errorlist {
 }
 
 .recommendations img {
-    width: 200px
+    width: 200px;
 }
 
 .recommendations p {
@@ -324,7 +348,10 @@ ul.errorlist {
     width: 120px;
 }
 
-/* braintree hosted fields */
+/* -------------------------
+   braintree hosted fields
+-------------------------- */
+
 form div.field {
     font-size: 13px;
     color: #666;
@@ -334,6 +361,112 @@ form div.field {
     padding: 6px 12px;
     border: 0;
     background: #efefef;
-    color: #666;
     border-radius: 4px;
+}
+
+/* =========================================================
+   Product list grid (Amazon-style, NO tall images, NO gaps)
+   NOTE: This replaces the old float-based product list rules.
+   ========================================================= */
+
+#main .product-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+}
+
+#main .product-list .item {
+    /* ensure old float layout cannot affect this */
+    float: none;
+    width: auto;
+    margin: 0;
+    padding: 12px;
+
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fff;
+
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    line-height: 1.2;
+}
+
+/* Fixed image box - prevents tall images from stretching rows */
+#main .product-list .item .product-image {
+    height: 180px;
+    width: 100%;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 10px;
+    background: #fff;
+}
+
+/* IMPORTANT: use max-* so portrait images can't force height */
+#main .product-list .item .product-image img {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* Product name clamp (2 lines) */
+#main .product-list .item a.name {
+    color: #111;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+    min-height: calc(1.3em * 2);
+    margin-top: 4px;
+}
+
+/* Price styling */
+#main .product-list .item .price {
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+/* ===== FORCE product grid image normalisation (wins over old rules) ===== */
+
+#main .product-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    gap: 16px !important;
+    align-items: stretch !important;
+}
+
+#main .product-list .item {
+    float: none !important;
+    width: auto !important;
+    text-align: left !important;
+}
+
+#main .product-list .item .product-image {
+    height: 180px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#main .product-list .item img {
+    /* IMPORTANT: override any width:100% / height:100% rules */
+    max-height: 180px !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
 }
