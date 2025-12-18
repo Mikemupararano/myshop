@@ -9,6 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from orders.models import Order
 from payment.tasks import payment_completed
+from shop.models import Product
+from shop.recommender import Recommender
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +94,12 @@ def stripe_webhook(request):
                 order.stripe_payment = payment_intent_id
 
         order.save()
+
+        # save items bought for product recommendations
+        product_ids = order.items.values_list("product_id")
+        products = Product.objects.filter(id__in=product_ids)
+        r = Recommender()
+        r.products_bought(products)
 
         transaction.on_commit(lambda: payment_completed.delay(order.id))
 
