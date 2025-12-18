@@ -1,14 +1,13 @@
+from coupons.forms import CouponApplyForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from shop.models import Product
+from shop.recommender import Recommender
 
 from .cart import Cart
 from .forms import CartAddProductForm
-from coupons.forms import CouponApplyForm
-from shop.recommender import Recommender
 
 
-# Create your views here.
 @require_POST
 def cart_add(request, product_id):
     cart = Cart(request)
@@ -46,6 +45,7 @@ def cart_detail(request):
         recommended_products = r.suggest_products_for(cart_products, max_results=4)
     else:
         recommended_products = []
+
     return render(
         request,
         "cart/detail.html",

@@ -1,13 +1,13 @@
 import redis
 from django.conf import settings
-from shop.models import Product
+from .models import Product
 
 # connect to redis
 r = redis.Redis(
     host=settings.REDIS_HOST,
     port=settings.REDIS_PORT,
     db=settings.REDIS_DB,
-    decode_responses=True,  # makes zrange return strings not bytes
+    decode_responses=True,  # zrange returns strings instead of bytes
 )
 
 
