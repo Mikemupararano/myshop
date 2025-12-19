@@ -470,3 +470,20 @@ form div.field {
     object-fit: contain !important;
     display: block !important;
 }
+
+.product-detail img {
+    width: 40%;
+    float: left;
+    ...
+}
+
+/* Force product list thumbnails to never stretch card height */
+#main .product-list .item img {
+    max-height: 180px !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
+}

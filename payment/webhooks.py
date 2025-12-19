@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from redis.exceptions import RedisError
 
 from orders.models import Order
 from payment.tasks import payment_completed
@@ -40,19 +41,20 @@ def stripe_webhook(request):
         logger.exception("Invalid Stripe webhook signature")
         return HttpResponse(status=400)
 
-    event_type = event["type"]
-    obj = event["data"]["object"]
+    event_type = event.get("type")
+    obj = (event.get("data") or {}).get("object") or {}
 
     logger.info("Stripe webhook received: %s", event_type)
 
     order_id = None
     payment_intent_id = None
 
-    # 1) Primary path: Checkout Session completed + paid
+    # Handle the events we care about
     if event_type == "checkout.session.completed":
+        # For cards this is usually "paid". For async methods it may not be.
         if obj.get("payment_status") != "paid":
             logger.info(
-                "Checkout session not paid (status=%s)", obj.get("payment_status")
+                "Checkout session not paid yet (status=%s)", obj.get("payment_status")
             )
             return HttpResponse(status=200)
 
@@ -61,7 +63,12 @@ def stripe_webhook(request):
         )
         payment_intent_id = obj.get("payment_intent")
 
-    # 2) Fallback path: PaymentIntent succeeded
+    elif event_type == "checkout.session.async_payment_succeeded":
+        order_id = (obj.get("metadata") or {}).get("order_id") or obj.get(
+            "client_reference_id"
+        )
+        payment_intent_id = obj.get("payment_intent")
+
     elif event_type == "payment_intent.succeeded":
         payment_intent_id = obj.get("id")
         order_id = (obj.get("metadata") or {}).get("order_id")
@@ -73,35 +80,49 @@ def stripe_webhook(request):
         logger.warning("No order_id found in Stripe event (type=%s)", event_type)
         return HttpResponse(status=200)
 
-    # ✅ atomic + idempotent
+    try:
+        order_id_int = int(order_id)
+    except (TypeError, ValueError):
+        logger.warning("Invalid order_id value: %r", order_id)
+        return HttpResponse(status=200)
+
+    # ✅ atomic + idempotent update
     with transaction.atomic():
         try:
-            order = Order.objects.select_for_update().get(id=order_id)
+            order = Order.objects.select_for_update().get(id=order_id_int)
         except Order.DoesNotExist:
-            logger.warning("Order %s not found", order_id)
+            logger.warning("Order %s not found", order_id_int)
             return HttpResponse(status=200)
 
         if order.paid:
             logger.info("Order %s already marked as paid", order.id)
             return HttpResponse(status=200)
 
+        # Mark as paid and store Stripe reference if available
         order.paid = True
-
         if payment_intent_id:
             if hasattr(order, "stripe_id"):
                 order.stripe_id = payment_intent_id
             elif hasattr(order, "stripe_payment"):
                 order.stripe_payment = payment_intent_id
 
-        order.save()
+        order.save(
+            update_fields=["paid"]
+            + (["stripe_id"] if hasattr(order, "stripe_id") else [])
+            + (["stripe_payment"] if hasattr(order, "stripe_payment") else [])
+        )
 
-        # save items bought for product recommendations
-        product_ids = order.items.values_list("product_id")
+        # Save items bought for product recommendations
+        product_ids = order.items.values_list("product_id", flat=True)
         products = Product.objects.filter(id__in=product_ids)
-        r = Recommender()
-        r.products_bought(products)
+
+        try:
+            Recommender().products_bought(products)
+        except RedisError:
+            # Don't fail the webhook if Redis is down
+            logger.warning("Redis unavailable; skipping recommendation update")
 
         transaction.on_commit(lambda: payment_completed.delay(order.id))
 
-    logger.info("Order %s marked as PAID (pi=%s)", order_id, payment_intent_id)
+    logger.info("Order %s marked as PAID (pi=%s)", order_id_int, payment_intent_id)
     return HttpResponse(status=200)
