@@ -61,6 +61,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -118,7 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # -------------------------------------------------------------------
 # Internationalization
 # -------------------------------------------------------------------
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en-gb"
 TIME_ZONE = "Europe/London"
 USE_I18N = True
 USE_TZ = True
@@ -206,3 +207,40 @@ REDIS_HOST = config("REDIS_HOST", default="localhost")
 REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
 REDIS_DB = 1
 
+# -------------------------------------------------------------------
+# Locale / translations
+# -------------------------------------------------------------------
+LANGUAGE_CODE = "en-gb"
+LANGUAGES = [
+    ("en", "English"),
+    # ("fr", "French"),
+    ("es", "Spanish"),
+]
+LOCALE_PATHS = [BASE_DIR / "locale"]
+
+
+# -------------------------------------------------------------------
+# Security: allowed hosts & CSRF
+# -------------------------------------------------------------------
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
+
+# Use a true empty list default
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default=[], cast=Csv())
+
+
+# -------------------------------------------------------------------
+# Stripe
+# -------------------------------------------------------------------
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
+
+# Make API version configurable; default to Stripe's current version (as of docs)
+STRIPE_API_VERSION = config("STRIPE_API_VERSION", default="2025-12-15.clover")
+
+# Only enforce Stripe credentials in production
+if not DEBUG and (not STRIPE_PUBLISHABLE_KEY or not STRIPE_SECRET_KEY):
+    raise RuntimeError("Stripe keys must be set in environment variables!")
+
+if not DEBUG and not STRIPE_WEBHOOK_SECRET:
+    raise RuntimeError("STRIPE_WEBHOOK_SECRET must be set in environment variables!")
