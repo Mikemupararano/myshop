@@ -11,6 +11,7 @@ from pathlib import Path
 
 from decouple import config, Csv
 from dotenv import load_dotenv
+from django.utils.translation import gettext_lazy as _
 
 # -------------------------------------------------------------------
 # Base paths & environment
@@ -212,9 +213,9 @@ REDIS_DB = 1
 # -------------------------------------------------------------------
 LANGUAGE_CODE = "en-gb"
 LANGUAGES = [
-    ("en", "English"),
-    # ("fr", "French"),
-    ("es", "Spanish"),
+    ("en", _("English")),
+    # ("fr", _("French")),
+    ("es", _("Spanish")),
 ]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
