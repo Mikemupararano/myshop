@@ -43,7 +43,7 @@
                 {% csrf_token %}
               </form>
             </td>
-            <td class="num">£${{ item.price }}</td>
+            <td class="num">£{{ item.price }}</td>
             <td class="num">£{{ item.total_price }}</td>
           </tr>
         {% endwith %}
@@ -52,7 +52,7 @@
         <tr class="subtotal">
           <td>{% translate "Subtotal" %}</td>
           <td colspan="4"></td>
-          <td class="num">${{ cart.get_total_price|floatformat:2 }}</td>
+          <td class="num">£{{ cart.get_total_price|floatformat:2 }}</td>
         </tr>
         <tr>
           <td>
