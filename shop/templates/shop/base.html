@@ -6,16 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}{% translate "My Shop" %}{% endblock %}</title>
     <link href="{% static 'css/base.css' %}" rel="stylesheet" />
-    
-
   </head>
 
   <body>
-    {% load i18n %}
-
-
     <div id="header">
-      <a href="{% url 'shop:product_list' %}" class="logo">{% translate "My Shop" %}</a>
+      <a href="{% url 'shop:product_list' %}" class="logo">
+        {% translate "My Shop" %}
+      </a>
     </div>
 
     <div id="subheader">
@@ -24,11 +21,10 @@
           {% if total_items > 0 %}
             {% translate "Your cart" %}:
             <a href="{% url 'cart:cart_detail' %}">
-              {% blocktranslate with total=cart.get_total_price count
-  items=total_items %}
-                {{ items}} item, £{{ total }}
+              {% blocktranslate count items=total_items with total=cart.get_total_price %}
+                {{ items }} item, £{{ total }}
               {% plural %}
-              {{ items }} items, £{{ total }}
+                {{ items }} items, £{{ total }}
               {% endblocktranslate %}
             </a>
           {% elif not order %}
