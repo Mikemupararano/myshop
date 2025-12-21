@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-20 17:43+0000\n"
+"POT-Creation-Date: 2025-12-20 22:17+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
 #: .\orders\models.py:11
 msgid "first name"
 msgstr "nombre"
@@ -40,3 +41,73 @@ msgstr "código postal"
 #: .\orders\models.py:16
 msgid "city"
 msgstr "ciudad"
+
+#: .\orders\templates\orders\order\create.html:4
+#: .\orders\templates\orders\order\create.html:9
+msgid "Checkout"
+msgstr ""
+
+#: .\orders\templates\orders\order\create.html:11
+msgid "Your order"
+msgstr ""
+
+#: .\orders\templates\orders\order\create.html:33
+#: .\orders\templates\orders\order\pdf.html:58
+msgid "Total"
+msgstr ""
+
+#: .\orders\templates\orders\order\create.html:37
+msgid "Place order"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:4
+msgid "My shop"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:6
+msgid "Invoice no."
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:11
+msgid "Bill to"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:18
+msgid "Items bought"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:22
+msgid "Product"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:23
+msgid "Price"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:24
+msgid "Quantity"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:25
+msgid "Cost"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:40
+msgid "Subtotal"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:47
+#, python-format
+msgid ""
+"\n"
+"              \"%(code)s\" (%(discount)s%% off)\n"
+"            "
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:65
+msgid "Paid"
+msgstr ""
+
+#: .\orders\templates\orders\order\pdf.html:65
+msgid "Pending payment"
+msgstr ""
