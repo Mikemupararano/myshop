@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-20 22:17+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2025-12-21 22:33+0000\n"
+"PO-Revision-Date: 2025-12-21 20:50+0000\n"
+"Last-Translator:   <kudath@yahoo.co.uk>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -18,11 +18,12 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
+"X-Translated-Using: django-rosetta 0.10.3\n"
 
 #: .\cart\forms.py:9 .\cart\templates\cart\detail.html:15
 #: .\payment\templates\payment\process.html:14
 msgid "Quantity"
-msgstr ""
+msgstr "cantidad/"
 
 #: .\cart\templates\cart\detail.html:5 .\cart\templates\cart\detail.html:9
 msgid "Your shopping cart"
@@ -36,7 +37,7 @@ msgstr ""
 #: .\cart\templates\cart\detail.html:14
 #: .\payment\templates\payment\process.html:12
 msgid "Product"
-msgstr ""
+msgstr "producto/"
 
 #: .\cart\templates\cart\detail.html:16 .\cart\templates\cart\detail.html:42
 msgid "Remove"
@@ -99,13 +100,33 @@ msgstr ""
 msgid "Coupon"
 msgstr ""
 
-#: .\myshop\settings.py:216
+#: .\myshop\settings.py:117
 msgid "English"
 msgstr "Inglês"
 
-#: .\myshop\settings.py:218
+#: .\myshop\settings.py:118
 msgid "Spanish"
 msgstr "Español"
+
+#: .\myshop\urls.py:23
+msgid "cart/"
+msgstr ""
+
+#: .\myshop\urls.py:24
+msgid "orders/"
+msgstr ""
+
+#: .\myshop\urls.py:25
+msgid "payment/"
+msgstr ""
+
+#: .\myshop\urls.py:26
+msgid "coupons/"
+msgstr ""
+
+#: .\myshop\urls.py:27
+msgid "rosetta/"
+msgstr ""
 
 #: .\payment\templates\payment\canceled.html:4
 msgid "Payment canceled"
@@ -151,15 +172,45 @@ msgstr ""
 msgid "Pay now"
 msgstr ""
 
-#: .\shop\templates\shop\base.html:7 .\shop\templates\shop\base.html:18
+#: .\payment\urls.py:9
+msgid "process/"
+msgstr ""
+
+#: .\payment\urls.py:10
+msgid "completed/"
+msgstr ""
+
+#: .\payment\urls.py:11
+msgid "cancelled/"
+msgstr ""
+
+#: .\shop\templates\shop\base.html:8 .\shop\templates\shop\base.html:14
 msgid "My Shop"
 msgstr ""
 
-#: .\shop\templates\shop\base.html:25
+#: .\shop\templates\shop\base.html:21
+msgid "Language"
+msgstr ""
+
+#: .\shop\templates\shop\base.html:44
 msgid "Your cart"
 msgstr ""
 
-#: .\shop\templates\shop\base.html:35
+#: .\shop\templates\shop\base.html:46
+#, python-format
+msgid ""
+"\n"
+"                %(items)s item, £%(total)s\n"
+"              "
+msgid_plural ""
+"\n"
+"                %(items)s items, £%(total)s\n"
+"              "
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: .\shop\templates\shop\base.html:53
 msgid "Your cart is empty."
 msgstr ""
 
