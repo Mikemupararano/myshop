@@ -9,6 +9,7 @@ from decouple import config, Csv
 from dotenv import load_dotenv
 from django.utils.translation import gettext_lazy as _
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     # Third-party
     "rosetta",
     "parler",
+    "localflavor",
 ]
 
 # ----------------------------
